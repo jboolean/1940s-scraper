@@ -1,0 +1,25 @@
+{
+  "name": "1940s-scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "scrape.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.9.0",
+    "eslint-config-squarespace": "^1.0.1",
+    "flow-bin": "^0.86.0",
+    "flow-typed": "^2.5.1"
+  },
+  "dependencies": {
+    "async": "^2.6.1",
+    "axios": "^0.18.0",
+    "csv-write-stream": "^2.0.0",
+    "puppeteer": "^1.10.0",
+    "request": "^2.88.0"
+  }
+}
