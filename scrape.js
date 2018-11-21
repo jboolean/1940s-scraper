@@ -1,77 +1,131 @@
-const puppeteer = require('puppeteer');
 const fs = require('fs');
 const request = require('request');
+const axios = require('axios');
+const csvWriter = require('csv-write-stream');
+const async = require('async');
+const AWS = require('aws-sdk');
+const credentials = require('./credentials');
 
-const FIRST_IMAGE_ID = 'NYCMA~5~5~179113~480926';
+const PARALLELISM = 10;
 
-const DEBUG = true;
+const FIRST_PAGE_URL = 'http://nycma.lunaimaging.com/luna/servlet/iiif/collection/s/556wi0';
+const METADATA_FILE = 'metadata.csv';
+const METADATA_HEADERS = ['Identifier',
+  'Date',
+  'Borough',
+  'Block',
+  'Lot', '1940 Building Number',
+  '1940 Street Name',
+  'Address',
+  'Condition',
+  'Year Built',
+  'Year Altered'];
+const LAST_COLLECTION_LOG_FILE = 'lastCollection';
 
-const METADATA_ORDER = [
-  'identifier',
-   'date',
-   'borough',
-   'block',
-   'lot',
-   'bldgNum',
-   'streetName',
-   'address',
-   'yearBuilt',
-   'lotFrontage', 
-   'lotDepth'];
 
-const download = function (uri, filename) {
+const s3 = new AWS.S3({
+  endpoint: 'https://nyc3.digitaloceanspaces.com',
+  accessKeyId: credentials.keyId,
+  secretAccessKey: credentials.secret,
+  params: {
+    Bucket: '40snyc'
+  }
+});
+
+
+const download = function (uri, key) {
   return new Promise((resolve, reject) => {
-    request.head(uri, function (err, res, body) {
-      request(uri).pipe(fs.createWriteStream(filename)).on('close', resolve);
+    request({ url: uri, encoding: null }, function (err, res, body) {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(s3.upload({
+        Body: body,
+        Key: key,
+        ContentType: res.headers['content-type'],
+        ContentLength: res.headers['content-length']
+      })
+        .promise());
     });
-  })
+  });
 };
 
-const makePageUrl = (imageId, offset) => 
-  `http://nycma.lunaimaging.com/luna/servlet/detail/${imageId}?qvq=sort%3Aborough%2Cblock%2Clot%2Czip_code%3Blc%3ANYCMA~5~5&mi=${offset}&trs=84751`;
+const exists = (key) => {
+  return new Promise((resolve, reject) => {
+    s3.headObject({
+      Key: key
+    }, (err, data) => {
+      if (err) {
+        if (err.code === 'NotFound') {
+          resolve(false);
+        } else {
+          console.log(err);
+          reject(err);
+        }
+      } else {
+        resolve(true);
+      }
+    });
+  });
+};
+
 
 (async () => {
-  const browser = await puppeteer.launch({headless: !DEBUG, devtools: DEBUG});
-  const page = await browser.newPage();
-  let nextUrl = makePageUrl(FIRST_IMAGE_ID, 0);
-  while (nextUrl) {
-    await page.goto(nextUrl);
-    const fullSizeImageUrl = await page.evaluate(() => {
-      return window.imageInfo.largestUrlAvailable;
-    });
-    const metadata = await page.evaluate((METADATA_ORDER) => {
-      const metadata = {};
-      // Not sure why it's a string here but an array in the console
-      const fieldValues = JSON.parse(window.imageInfo.fieldValues);
-      for (let i = 0; i < METADATA_ORDER.length && i < fieldValues.length; i++) {
-        metadata[METADATA_ORDER[i]] = fieldValues[i].value;
-      }
-      return metadata;
-    }, METADATA_ORDER);
-  
-    console.log(metadata);
-  
-    await download(fullSizeImageUrl, `images/${metadata.identifier}.jpg`);
-  
-    await page.waitFor(() => !!window.quickView && !window.quickView.mWaitingForImages);
-    const {nextPageId, nextOffset} = await page.evaluate((currentUrl) => {
-      const infos = window.quickView.mImageInfos;
-      // Find the next image after this one.
-      const thisImageIndex = infos.findIndex((info) => currentUrl.includes(info.id));
-      if (thisImageIndex < 0) {
-        throw new Error('The current image is not in thumbnails.');
-      }
-      if (thisImageIndex + 1 >= infos.length) {
-        debugger;
-        // Last image
-        return null;
-      }
-      const nextOffset = window.quickView.mCurrentImageOffset + 1;
-      return { nextPageId: infos[thisImageIndex + 1].id, nextOffset };
-    }, page.url());
-  
-    nextUrl = nextPageId == null ? null : makePageUrl(nextPageId, nextOffset);
-  }
+  const csvOptions = fs.existsSync(METADATA_FILE) ?
+    { sendHeaders: false } : { headers: METADATA_HEADERS };
 
-  await browser.close();
+  const writer = csvWriter(csvOptions);
+  writer.pipe(fs.createWriteStream(METADATA_FILE, { flags: 'a' }));
+
+  // Pick up where left off if possible
+  let nextPageUrl = fs.existsSync(LAST_COLLECTION_LOG_FILE) ?
+    fs.readFileSync(LAST_COLLECTION_LOG_FILE, { encoding: 'utf8' }) : FIRST_PAGE_URL;
+
+  while (nextPageUrl) {
+    console.log('Loading page', nextPageUrl);
+
+    const collectionResp = await axios.get(nextPageUrl);
+    const collection = collectionResp.data;
+    if (collection.total) {
+      console.log(Math.round((collection.startIndex / collection.total) * 100) + '% complete');
+    }
+    const q = async.queue(async (manifestSummary) => {
+      const manifestResp = await axios.get(manifestSummary['@id']);
+      const manifest = manifestResp.data;
+      const canvas = manifest.sequences[0].canvases[0];
+      const metadata = {};
+      canvas.metadata
+        .forEach(metadatum => {
+          const key = metadatum.label;
+          const value = metadatum.value.replace(/<\/?[^>]+>/g, '');
+          metadata[key] = value;
+        });
+      const thumbnailUrl = canvas.thumbnail['@id'];
+      const fullSizeImageUrl = thumbnailUrl.replace('Size0', 'Size4');
+      const key = metadata.Identifier;
+      if (!(await exists(key))) {
+        writer.write(metadata);
+        await download(fullSizeImageUrl, key);
+      } else {
+        console.log('Skipping', key);
+      }
+    }, PARALLELISM);
+    const end = () => {
+      return new Promise((resolve, reject) => {
+        q.drain = () => {
+          console.log('Drained');
+          resolve();
+        };
+      });
+    };
+    q.push(collection.manifests);
+    await end();
+
+    nextPageUrl = collection.total ? collection.next : null;
+    if (nextPageUrl) {
+      fs.writeFileSync(LAST_COLLECTION_LOG_FILE, nextPageUrl);
+    }
+  }
+  writer.end();
 })();

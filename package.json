@@ -17,9 +17,9 @@
   },
   "dependencies": {
     "async": "^2.6.1",
+    "aws-sdk": "^2.358.0",
     "axios": "^0.18.0",
     "csv-write-stream": "^2.0.0",
-    "puppeteer": "^1.10.0",
     "request": "^2.88.0"
   }
 }

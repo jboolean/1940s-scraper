@@ -2,3 +2,4 @@ metadata.csv
 images/*
 node_modules
 lastCollection
+credentials.js
