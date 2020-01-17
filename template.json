@@ -1,0 +1,23 @@
+
+
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          0,
+          0
+        ]
+      },
+      "properties": {
+        "type": "fourtiesPhoto",
+        "photoIdentifier": "nynyma_rec0040_1_01011_0038",
+        "address": "10 Battery Park",
+        "geocodeMethod": "geosearch"
+      }
+    }
+  ]
+}

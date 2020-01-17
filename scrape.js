@@ -10,7 +10,8 @@ const PARALLELISM = 10;
 
 const FIRST_PAGE_URL = 'http://nycma.lunaimaging.com/luna/servlet/iiif/collection/s/556wi0';
 const METADATA_FILE = 'metadata.csv';
-const METADATA_HEADERS = ['Identifier',
+const METADATA_HEADERS = [
+  'Identifier',
   'Date',
   'Borough',
   'Block',
@@ -19,7 +20,10 @@ const METADATA_HEADERS = ['Identifier',
   'Address',
   'Condition',
   'Year Built',
-  'Year Altered'];
+  'Year Altered',
+  'Lot Frontage',
+  'Lot Depth',
+  'Description'];
 const LAST_COLLECTION_LOG_FILE = 'lastCollection';
 
 
