@@ -2,7 +2,7 @@ const { Pool } = require('pg');
 const QueryStream = require('pg-query-stream');
 const JSONStream = require('JSONStream');
 const { Transform } = require('stream');
-const gp = require("geojson-precision");
+const gp = require('geojson-precision');
 
 const QUERY = `
   select distinct on (photos.identifier) photos.identifier, photos.address, geocode_results.lng_lat, geocode_results.method
@@ -23,9 +23,13 @@ const CLOSE = `
 }`;
 
 const pool = new Pool({
-  user: 'julianboilen',
+  user: 'postgres',
+  // host: 'fourtiesnyc.cluster-cioc65o5flzv.us-east-1.rds.amazonaws.com',
   host: 'localhost',
-  database: 'fourtiesnyc'
+  database: 'postgres',
+  password: '***REMOVED***',
+  // port: 5432,
+  port: 5433
 });
 
 const rowToFeature = (row) => (
@@ -63,15 +67,15 @@ const reducePrecisionTransform = new Transform({
   }
 });
 
-var appendTransform = new Transform({
+const appendTransform = new Transform({
   objectMode: true,
-    transform(chunk, encoding, callback) {
-        callback(null, chunk);
-    },
-    flush(callback) {
-        this.push(CLOSE);
-        callback();
-    }
+  transform(chunk, encoding, callback) {
+    callback(null, chunk);
+  },
+  flush(callback) {
+    this.push(CLOSE);
+    callback();
+  }
 });
 
 const run = async () => {
