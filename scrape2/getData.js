@@ -5,8 +5,12 @@ const cleanupData = require('./cleanupData');
 const backoff = require('../backoff');
 const path = require('path');
 
+const myAxios = axios.create({
+  timeout: 1000
+});
 
-const backoffGet = backoff((...args) => axios.get(...args));
+
+const backoffGet = backoff((...args) => myAxios.get(...args));
 
 const LAST_COLLECTION_LOG_FILE = path.join(__dirname, './lastCollection');
 
@@ -19,20 +23,25 @@ async function* scrapeData(firstPageUrl) {
     console.log('Loading page', nextPageUrl);
 
     const collectionResp = await backoffGet(nextPageUrl);
+    if (!collectionResp.headers['content-type'].includes('application/json')) {
+      console.warn('Response is not JSON, may indicate no more pages');
+      return;
+    }
     const collection = collectionResp.data;
     if (collection.total) {
       console.log(Math.round((collection.startIndex / collection.total) * 100) + '% complete');
     }
 
-    for (const manifestSummary of collection.manifests) {
-      const manifestResp = await backoffGet(manifestSummary['@id']);
+    const manifestResps = await Promise.all(collection.manifests.map(manifestSummary => backoffGet(manifestSummary['@id'])));
+
+    for (const manifestResp of manifestResps) {
       const manifest = manifestResp.data;
       const canvas = manifest.sequences[0].canvases[0];
       const metadata = {};
       canvas.metadata
         .forEach(metadatum => {
           const key = metadatum.label;
-          const value = metadatum.value.replace(/<\/?[^>]+>|�/g, '');
+          const value = metadatum.value.replace(/<\/?[^>]+>|�|\.jpg/g, '');
           metadata[key] = value;
         });
       const thumbnailUrl = canvas.thumbnail['@id'];

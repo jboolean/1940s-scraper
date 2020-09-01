@@ -12,13 +12,15 @@ const s3 = new AWS.S3({
   }
 });
 
-module.exports = async function imageExists(key) {
-  await s3.headObject({
+module.exports = function imageExists(key) {
+  return s3.headObject({
     Key: `originals/${key}`,
   }).promise()
-    .then(() => true, (err) => {
+    .then((resp) => {
+      return true;
+    }, (err) => {
       if (err.code === 'NotFound') {
-        return true;
+        return false;
       }
       throw err;
     });

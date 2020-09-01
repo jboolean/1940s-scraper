@@ -16,6 +16,7 @@ const parser = parse({
 
 
 module.exports = () => new Promise((resolve, reject) => {
+  /*
   const locByBbl = new Map();
   const collect = new Writable({
     objectMode: true,
@@ -40,5 +41,19 @@ module.exports = () => new Promise((resolve, reject) => {
       console.log(err);
       reject(err);
     });
+    */
+
+  console.log('Loading PLUTO data…');
+  const startT = process.hrtime();
+  fs.readFile(path.join(__dirname, './locByBbl.json'), (err, data) => {
+    if (err) {
+      reject(err);
+      return;
+    }
+    const locByBbl = new Map(JSON.parse(data));
+    resolve(locByBbl);
+    const endT = process.hrtime(startT);
+    console.info('Loaded %s tax lots. %ds %dms', locByBbl.size, endT[0], endT[1] / 1000000);
+  });
 
 });

@@ -8,11 +8,15 @@ const insertGeocodeResult = require('./insertGeocodeResult');
 const imageExists = require('./imageExists');
 const eachLimit = require('async/eachLimit');
 
-const LIMIT = 20;
+const LIMIT = 25;
+const USE_PROXY = true;
 
 const COLLECTIONS = {
   Manhattan: 'http://nycma.lunaimaging.com/luna/servlet/iiif/collection/s/556wi0',
-  Brooklyn: 'http://nycma.lunaimaging.com/luna/servlet/iiif/collection/s/jsb4jg'
+  Brooklyn: 'http://nycma.lunaimaging.com/luna/servlet/iiif/collection/s/jsb4jg',
+  Bronx: 'http://nycma.lunaimaging.com/luna/servlet/iiif/collection/s/an4xbo',
+  Queens: 'http://nycma.lunaimaging.com/luna/servlet/iiif/collection/s/93ix4w',
+  'Staten Island': 'http://nycma.lunaimaging.com/luna/servlet/iiif/collection/s/ue533x'
 };
 
 (async () => {
@@ -20,12 +24,10 @@ const COLLECTIONS = {
 
   const pool = new Pool({
     user: 'postgres',
-    // host: 'fourtiesnyc.cluster-cioc65o5flzv.us-east-1.rds.amazonaws.com',
-    host: 'localhost',
+    host: USE_PROXY ? 'localhost' : 'fourtiesnyc.cluster-cioc65o5flzv.us-east-1.rds.amazonaws.com',
     database: 'postgres',
     password: '***REMOVED***',
-    // port: 5432,
-    port: 5433
+    port: USE_PROXY ? 5433 : 5432
   });
 
   console.log('starting', borough);
@@ -33,24 +35,19 @@ const COLLECTIONS = {
     const { identifier, imageUrl } = record;
     // console.log(record.address);
 
-    // const [[count]] = await pool.query({ text: `
-    //   select count(*) as count from photos
-    //   inner join geocode_results on photos.identifier = geocode_results.photo
-    //   where photos.identifier = $1
-    //   and geocode_results.lng_lat is not null;`,
-    // values: [identifier],
-    // rowMode: 'array' });
-    // console.log('Non-null geocode results:', count);
+    await insertMetadata(pool, record);
 
-    // await insertMetadata(pool, record);
-
-    // await downloadImage(imageUrl, identifier);
+    // if (!(await imageExists(identifier))) {
+    //   console.log('Downloading missing image', identifier);
+    await downloadImage(imageUrl, identifier);
+    // }
 
     const geocodeResults = await geocode(record);
-    console.log(geocodeResults);
-    // for (const [method, location] of Object.entries(geocodeResults)) {
-    //   await insertGeocodeResult(pool, identifier, { method, location });
-    // }
+    // console.log(geocodeResults);
+    for (const [method, location] of Object.entries(geocodeResults)) {
+      await insertGeocodeResult(pool, identifier, { method, location });
+    }
   });
+  await pool.query('REFRESH MATERIALIZED VIEW effective_geocodes_view WITH DATA');
   pool.end();
 })();

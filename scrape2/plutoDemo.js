@@ -1,4 +1,4 @@
 const loadPluto = require('./loadPluto');
 
 loadPluto()
-  .then(() => console.log('done'));
+  .then((locByBbl) => process.stdout.write(JSON.stringify([...locByBbl])));

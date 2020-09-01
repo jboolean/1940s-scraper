@@ -30,7 +30,8 @@ module.exports = function cleanupData(raw) {
     '1940 Building Number': fullBldgNum,
     '1940 Street Name': streetName,
     Address: address,
-    Condition: condition } = _.mapValues(raw, (v) => v || null);
+    Condition: condition,
+    Description: description } = _.mapValues(raw, (v) => v || null);
 
 
   if (block >= 32767 || (block && isNaN(block))) {
@@ -43,7 +44,10 @@ module.exports = function cleanupData(raw) {
     lot = undefined;
   }
 
-  const isOuttake = date === 'Outtake';
+  const isOuttake = date === 'Outtake' || description === 'Outtake';
+  if (date === 'Outtake') {
+    date = null;
+  }
 
   let buildingNumberStart;
   let buildingNumberEnd;

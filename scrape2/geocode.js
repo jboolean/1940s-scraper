@@ -34,7 +34,7 @@ const getSimplifiedAddress = (photo) => {
 };
 
 // Mapbox sucks too much to include
-const GEOCODER_ORDER = ['pluto'/*, 'geosearch', 'gmaps', 'gmapsPlacesAutocomplete'*/];
+const GEOCODER_ORDER = ['pluto', 'geosearch', 'gmaps', 'gmapsPlacesAutocomplete'];
 
 const geocoders = {
   geosearch: (photo) => {
@@ -62,9 +62,9 @@ const geocoders = {
         throw err;
       })
       .then((resp) =>
-        resp.data.features.filter(feature => feature.geometry.coordinates &&
+        resp.data.features.filter(feature => get(feature, 'geometry.coordinates') &&
           getBorough(feature.geometry.coordinates) === borough))
-      .then(features => features[0] || null);
+      .then(features => get(features, '[0].geometry.coordinates') || null);
   },
   mapbox: backoff((photo) => {
     const {
@@ -73,7 +73,7 @@ const geocoders = {
 
     const simplifiedAddress = getSimplifiedAddress(photo);
     if (!simplifiedAddress) {
-      console.log('No address');
+      // console.log('No address');
       return Promise.resolve(null);
     }
 
@@ -93,7 +93,7 @@ const geocoders = {
     const { borough } = photo;
     const simplifiedAddress = getSimplifiedAddress(photo);
     if (!simplifiedAddress) {
-      console.log('No address');
+      // console.log('No address');
       return Promise.resolve(null);
     }
 
@@ -105,7 +105,6 @@ const geocoders = {
       }
     })
       .then((resp) => {
-        // console.log(resp);
         const results = resp.data.results
           .filter((result) => result.types.includes('street_address'))
           .filter(result => {
@@ -113,8 +112,10 @@ const geocoders = {
             if (!location) {return false;}
             const pointBorough = getBorough([location.lng, location.lat]);
             if (pointBorough !== borough) {
+              console.log('Borough mismatch gmaps', pointBorough, borough);
               return false;
             }
+            return true;
           });
 
         const location = get(results, '[0].geometry.location');
@@ -129,7 +130,7 @@ const geocoders = {
     const { borough } = photo;
     const simplifiedAddress = getSimplifiedAddress(photo);
     if (!simplifiedAddress) {
-      console.log('No address');
+      // console.log('No address');
       return Promise.resolve(null);
     }
 
@@ -167,14 +168,17 @@ const geocoders = {
     }
     const { lat, lng } = location;
     const point = [lng, lat];
-    if (getBorough(point) !== borough) {
+    const pointBorough = getBorough(point);
+    if (pointBorough !== borough) {
+      console.log('Borough mismatch gmapsPlacesAutocomplete', pointBorough, borough);
       return null;
     }
+    return point;
   },
   pluto: async (photo) => {
     const { borough, block, lot } = photo;
     if (isEmpty(borough) || !(borough in BORO_CODES) || isEmpty(block) || isEmpty(lot)) {
-      console.log('Cannot form bbl', borough, block, lot);
+      console.warn('Cannot form bbl', borough, block, lot);
     }
     const bbl = Number(`${BORO_CODES[borough]}${padStart(block, 5, '0')}${padStart(lot, 4, '0')}`);
     const locByBbl = await loadPluto();
