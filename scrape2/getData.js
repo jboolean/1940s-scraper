@@ -41,7 +41,7 @@ async function* scrapeData(firstPageUrl) {
       canvas.metadata
         .forEach(metadatum => {
           const key = metadatum.label;
-          const value = metadatum.value.replace(/<\/?[^>]+>|�|\.jpg/g, '');
+          const value = metadatum.value.replace(/<\/?[^>]+>|�|\.jpg|\.tif/g, '');
           metadata[key] = value;
         });
       const thumbnailUrl = canvas.thumbnail['@id'];
