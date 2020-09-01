@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
 const last = require('lodash/last');
-const backoff = require('./backoff');
+const backoff = require('../backoff');
 
 const WEIRD_CHAR = '�';
 

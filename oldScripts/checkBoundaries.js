@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 const Cursor = require('pg-cursor');
 const { promisify } = require('util');
-const getBorough = require('./getBorough');
+const getBorough = require('../getBorough');
 
 const pool = new Pool({
   user: 'postgres',

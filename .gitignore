@@ -4,3 +4,4 @@ node_modules
 lastCollection
 credentials.js
 node_modules
+.vscode
