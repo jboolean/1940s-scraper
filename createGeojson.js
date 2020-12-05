@@ -14,15 +14,7 @@ const OPEN = `
 const CLOSE = `
 }`;
 
-const pool = new Pool({
-  user: 'postgres',
-  // host: 'fourtiesnyc.cluster-cioc65o5flzv.us-east-1.rds.amazonaws.com',
-  host: 'localhost',
-  database: 'postgres',
-  password: '***REMOVED***',
-  // port: 5432,
-  port: 5433
-});
+const pool = new Pool();
 
 const rowToFeature = (row) => (
   {

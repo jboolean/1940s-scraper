@@ -28,7 +28,9 @@
     "pg": "^7.12.1",
     "pg-cursor": "^2.0.0",
     "pg-query-stream": "^2.0.0",
+    "pixelmatch": "^5.2.1",
     "request": "^2.88.0",
+    "sharp": "^0.26.3",
     "uuid": "^3.3.3"
   }
 }

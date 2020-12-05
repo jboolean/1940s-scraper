@@ -19,7 +19,7 @@ module.exports = async function downloadImage(uri, key) {
   const resp = await backoffGet(uri, { responseType: 'arraybuffer' });
   if (resp === null) {
     console.warn('404 for image', uri, key);
-    return;
+    return null;
   }
   await s3.upload({
     Body: resp.data,
@@ -27,4 +27,5 @@ module.exports = async function downloadImage(uri, key) {
     ContentType: resp.headers['content-type'],
     ContentLength: resp.headers['content-length']
   }).promise();
+  return resp.data;
 };

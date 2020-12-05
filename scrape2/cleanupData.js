@@ -17,6 +17,8 @@ const oopsMonths = {
   'Dec': '12'
 };
 
+const BOROUGH_80S_PATTERN = /\(([\w\s]+)\)/;
+
 /**
  * Rename fields, cleanup mistakes, add some calculated fields.
  */
@@ -27,11 +29,25 @@ module.exports = function cleanupData(raw) {
     Borough: borough,
     Block: block,
     Lot: lot,
-    '1940 Building Number': fullBldgNum,
-    '1940 Street Name': streetName,
+    '1940 Building Number': fourtiesBldgNum,
+    'Building Number': eightiesBldgNum,
+    '1940 Street Name': fourtiesStreetName,
+    'Street Name': eightiesStreetName,
     Address: address,
+    'Zip Code': postalCode,
     Condition: condition,
-    Description: description } = _.mapValues(raw, (v) => v || null);
+    Description: description,
+    'Owner (In 1990)': owner,
+  } = _.mapValues(raw, (v) => v || null);
+
+  const fullBldgNum = fourtiesBldgNum || eightiesBldgNum;
+  const streetName = fourtiesStreetName || eightiesStreetName;
+
+
+  // eighties does not have address, make one
+  if (!address) {
+    address = _.compact([fullBldgNum, streetName]).join(' ');
+  }
 
 
   if (block >= 32767 || (block && isNaN(block))) {
@@ -71,6 +87,13 @@ module.exports = function cleanupData(raw) {
     sideOfStreet = (+buildingNumberStart.match(/^\d+/)) % 2 === 0;
   }
 
+
+  // In the 80s photos the borough is like "1 (Manhattan)"
+  // Convert this to be just the borough name like the 40s photos.
+  if (borough.match(BOROUGH_80S_PATTERN)) {
+    borough = borough.match(BOROUGH_80S_PATTERN)[1];
+  }
+
   return {
     identifier,
     date,
@@ -80,10 +103,12 @@ module.exports = function cleanupData(raw) {
     fullBldgNum,
     streetName,
     address,
+    postalCode,
     condition,
     isOuttake,
     sideOfStreet,
     buildingNumberStart,
-    buildingNumberEnd
+    buildingNumberEnd,
+    owner,
   };
 };

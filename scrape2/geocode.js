@@ -18,6 +18,8 @@ const BORO_CODES = {
   'Staten Island': 5
 };
 
+const { GOOGLEAPIKEY } = process.env;
+
 
 const getSimplifiedAddress = (photo) => {
   const {
@@ -101,7 +103,7 @@ const geocoders = {
       params: {
         address: simplifiedAddress,
         components: `administrative_area:NY|locality:${borough}`,
-        key: '***REMOVED***'
+        key: GOOGLEAPIKEY
       }
     })
       .then((resp) => {
@@ -143,7 +145,7 @@ const geocoders = {
         radius: 30354,
         types: 'geocode',
         strictbounds: true,
-        key: '***REMOVED***',
+        key: GOOGLEAPIKEY,
         sessiontoken
       }
     });
@@ -157,7 +159,7 @@ const geocoders = {
     const detailsResp = await backoffGet('https://maps.googleapis.com/maps/api/place/details/json', {
       params: {
         placeid: prediction.place_id,
-        key: '***REMOVED***',
+        key: GOOGLEAPIKEY,
         sessiontoken
       }
     });

@@ -6,13 +6,28 @@ const backoff = require('../backoff');
 const path = require('path');
 
 const myAxios = axios.create({
-  timeout: 1000
+  timeout: 2000
 });
 
 
 const backoffGet = backoff((...args) => myAxios.get(...args));
+const backoffHead = backoff((...args) => myAxios.head(...args));
+
 
 const LAST_COLLECTION_LOG_FILE = path.join(__dirname, './lastCollection');
+
+async function getFullSizeImageUrl(thumbnailUrl) {
+  for (let size = 4; size >= 0; size--) {
+    const fullSizeImageUrl = thumbnailUrl.replace('Size0', 'Size' + size);
+    const resp = await backoffHead(fullSizeImageUrl, {
+      validateStatus: (status) => status < 500
+    });
+    if (resp.status !== 404) {
+      return fullSizeImageUrl;
+    }
+  }
+  throw new Error('Image not found');
+}
 
 async function* scrapeData(firstPageUrl) {
   let nextPageUrl = fs.existsSync(LAST_COLLECTION_LOG_FILE) ?
@@ -45,7 +60,7 @@ async function* scrapeData(firstPageUrl) {
           metadata[key] = value;
         });
       const thumbnailUrl = canvas.thumbnail['@id'];
-      const fullSizeImageUrl = thumbnailUrl.replace('Size0', 'Size4');
+      const fullSizeImageUrl = await getFullSizeImageUrl(thumbnailUrl);
       const cleanData = cleanupData(metadata);
       if (!cleanData) {
         // Cannot be cleaned. Skip.
@@ -53,6 +68,8 @@ async function* scrapeData(firstPageUrl) {
         continue;
       }
       cleanData.imageUrl = fullSizeImageUrl;
+      cleanData.width = canvas.width;
+      cleanData.height = canvas.height;
       yield cleanData;
     }
     if (nextPageUrl) {
