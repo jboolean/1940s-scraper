@@ -5,3 +5,4 @@ lastCollection
 credentials.js
 node_modules
 .vscode
+.env

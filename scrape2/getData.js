@@ -16,13 +16,26 @@ const backoffHead = backoff((...args) => myAxios.head(...args));
 
 const LAST_COLLECTION_LOG_FILE = path.join(__dirname, './lastCollection');
 
-async function getFullSizeImageUrl(thumbnailUrl) {
-  for (let size = 4; size >= 0; size--) {
-    const fullSizeImageUrl = thumbnailUrl.replace('Size0', 'Size' + size);
+async function getFullSizeImageUrl(thumbnailUrl, width, height) {
+  // I do not believe they use the Size0 format anymore. This is likely dead code
+  if (thumbnailUrl.includes('Size0')) {
+    for (let size = 4; size >= 0; size--) {
+      const fullSizeImageUrl = thumbnailUrl.replace('Size0', 'Size' + size);
+      const resp = await backoffHead(fullSizeImageUrl, {
+        validateStatus: (status) => status < 500
+      });
+      if (resp.status ) {
+        return fullSizeImageUrl;
+      }
+    }
+  } else {
+    // Standard IIIF url scheme is actually documented. 'max' means full resolution.
+    // Sometimes, anyway. Requesting width and height exactly seems more reliable.
+    const fullSizeImageUrl = thumbnailUrl.replace('!96,96', `!${width},${height}`);
     const resp = await backoffHead(fullSizeImageUrl, {
-      validateStatus: (status) => status < 500
+      validateStatus: (status) => status < 500 && status !== 429
     });
-    if (resp.status !== 404) {
+    if (resp.status === 200) {
       return fullSizeImageUrl;
     }
   }
@@ -60,7 +73,7 @@ async function* scrapeData(firstPageUrl) {
           metadata[key] = value;
         });
       const thumbnailUrl = canvas.thumbnail['@id'];
-      const fullSizeImageUrl = await getFullSizeImageUrl(thumbnailUrl);
+      const fullSizeImageUrl = await getFullSizeImageUrl(thumbnailUrl, canvas.width, canvas.height);
       const cleanData = cleanupData(metadata);
       if (!cleanData) {
         // Cannot be cleaned. Skip.

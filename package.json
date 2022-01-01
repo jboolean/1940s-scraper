@@ -25,7 +25,7 @@
     "geojson-geometries-lookup": "^0.5.0",
     "geojson-precision": "^1.0.0",
     "lodash": "^4.17.15",
-    "pg": "^7.12.1",
+    "pg": "^8.7.1",
     "pg-cursor": "^2.0.0",
     "pg-query-stream": "^2.0.0",
     "pixelmatch": "^5.2.1",

@@ -5,10 +5,29 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "node",
+      "name": "Scrape 1980 Manhattan",
+      "program": "${workspaceFolder}/scrape2/scrape.js",
       "request": "launch",
-      "name": "Launch Program",
-      "program": "${file}"
-    }
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "pwa-node",
+      "args": ["1980", "https://nycma.lunaimaging.com/luna/servlet/iiif/collection/s/97445g"],
+      "envFile": "${workspaceFolder}/scrape2/.env"
+    },
+        {
+          "name": "Scrape 1980 Brooklyn",
+          "program": "${workspaceFolder}/scrape2/scrape.js",
+          "request": "launch",
+          "skipFiles": [
+            "<node_internals>/**"
+          ],
+          "type": "pwa-node",
+          "args": [
+            "1980",
+            "https://nycma.lunaimaging.com/luna/servlet/iiif/collection/s/rzd6o2"
+          ],
+          "envFile": "${workspaceFolder}/scrape2/.env"
+        },
   ]
 }
