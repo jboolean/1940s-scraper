@@ -1,7 +1,7 @@
 metadata.csv
 images/*
 node_modules
-lastCollection
+lastCollection*
 credentials.js
 node_modules
 .vscode
