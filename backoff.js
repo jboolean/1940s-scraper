@@ -6,7 +6,7 @@ const backoff = (delegate) => (...args) => {
         console.log(`Backing off (attempt ${tries + 1})...`, e);
         setTimeout(() => {
           resolve(runWithBackoff(tries + 1));
-        }, 1000 * Math.pow(2, tries));
+        }, Math.min(1000 * Math.pow(2, tries), 10 * 60 * 1_000));
       })
 
       );

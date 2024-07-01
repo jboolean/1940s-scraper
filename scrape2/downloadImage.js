@@ -4,7 +4,7 @@ const backoff = require("../backoff");
 
 const backoffGet = backoff((...args) =>
   axios.get(...args).catch((err) => {
-    if (err.response.status === 404) {
+    if (err && err.response && err.response.status === 404) {
       return null;
     }
     throw err;
