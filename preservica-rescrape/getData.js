@@ -10,7 +10,8 @@ const COLLECTION_BASE_URL = "https://nycrecords.access.preservica.com/";
 const DOWNLOAD_PATH = "download/file/";
 
 const myAxios = axios.create({
-  timeout: 10_000,
+	// These pages are VERY slow
+  timeout: 300_000,
 });
 
 const backoffAxios = backoff((...args) => myAxios(...args));
