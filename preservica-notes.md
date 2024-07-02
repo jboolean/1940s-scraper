@@ -89,3 +89,11 @@ sharp(inputImagePath)
     console.error(err);
   });
 ```
+
+Copying 80s photos over to new 720
+
+aws s3 cp s3://fourties-photos/jpg/ s3://fourties-photos/720-jpg/ --recursive
+ --exclude "*" --include "dof_*" --skip-existing
+
+ aws s3 sync s3://fourties-photos/jpg/ s3://fourties-photos/720-jpg/ --dryrun
+ --exclude "*" --include "dof_*" --exact-timestamps
