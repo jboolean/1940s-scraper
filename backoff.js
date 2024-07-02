@@ -1,5 +1,4 @@
 const backoff = (delegate) => (...args) => {
-
   const runWithBackoff = (tries = 0) => {
     return delegate(...args)
       .catch((e) => new Promise((resolve, reject) => {
