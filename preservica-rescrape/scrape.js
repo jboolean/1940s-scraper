@@ -25,10 +25,20 @@ const keyFn = (resp) => {
 (async () => {
   const borough = process.argv[2];
 
-  console.log("starting", borough);
-  await eachLimit(getData(COLLECTION_NAMES[borough]), LIMIT, async (record) => {
-    const { imageUrl } = record;
-    console.log(`Downloading image from ${imageUrl}`);
-    await downloadImage(imageUrl, keyFn);
-  });
+  // If a borough is specified, only scrape that borough. Otherwise, scrape all.
+  const collections =
+    borough in COLLECTION_NAMES
+      ? [COLLECTION_NAMES[borough]]
+      : Object.values(COLLECTION_NAMES);
+
+  for (const collectionName of collections) {
+    console.log("starting", borough);
+    await eachLimit(getData(collectionName), LIMIT, async (record) => {
+      const { imageUrl } = record;
+      console.log(`Downloading image from ${imageUrl}`);
+      await downloadImage(imageUrl, keyFn);
+    });
+  }
+
+  console.log("Scrape complete.");
 })();
