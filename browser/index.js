@@ -16,13 +16,26 @@ const preloadFile = readFileSync(
 
 class ScrapeBrowser {
   constructor(
-    { proxy, twoCaptchaApiKey } = {
+    { publicProxy, localProxy, twoCaptchaApiKey } = {
       twoCaptchaApiKey: process.env.TWO_CAPTCHA_API_KEY,
-      proxy: process.env.PROXY,
+
+      // You may have two ways of connecting to the same proxy
+      // Both proxys must result in the same ip to have the best chance of solving captchas
+
+      // Public proxy is a proxy address that is accessible from the internet
+      // It is used by 2Captcha, which is external service
+      publicProxy: process.env.PUBLIC_PROXY,
+
+      // Local proxy is is an optional proxy to be used by the browser
+      // It can be omitted if the browser is running on the server with the same IP
+      // It may use an address on the local network to avoid going over the Internet
+      // It could be useful if you want to use an ip from another machine
+      localProxy: process.env.LOCAL_PROXY,
     }
   ) {
     this.solver = new Solver(twoCaptchaApiKey);
-    this.proxy = proxy;
+    this.publicProxy = publicProxy;
+    this.localProxy = localProxy;
   }
 
   async launch() {
@@ -37,7 +50,7 @@ class ScrapeBrowser {
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-blink-features=AutomationControlled",
-        this.proxy ? `--proxy-server=${this.proxy}` : "",
+        this.localProxy ? `--proxy-server=${this.localProxy}` : "",
         // "--window-size=1920,1080",
       ],
     });
@@ -63,7 +76,7 @@ class ScrapeBrowser {
         // console.log(params);
         const res = await this.solver.cloudflareTurnstile({
           ...params,
-          ...(this.proxy ? { proxy: this.proxy } : {}),
+          ...(this.publicProxy ? { proxy: this.publicProxy } : {}),
         });
         console.log(`Solved the captcha ${res.id}`);
         await page.evaluate((token) => {
