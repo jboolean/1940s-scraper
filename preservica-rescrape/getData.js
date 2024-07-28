@@ -10,13 +10,15 @@ const COLLECTION_BASE_URL = "https://nycrecords.access.preservica.com/";
 const DOWNLOAD_PATH = "download/file/";
 
 const myAxios = axios.create({
-	// These pages are VERY slow
+  // These pages are VERY slow
   timeout: 300_000,
 });
 
 const backoffAxios = backoff((...args) => myAxios(...args));
 
-async function* getData(collectionName) {
+async function* getData(browser, collectionName) {
+  const backoffGetHtml = backoff((...args) => browser.goToAndGetHtml(...args));
+
   const lastPageLogFile = LAST_PAGE_LOG_FILE + "-" + collectionName;
   let nextPageNum = fs.existsSync(lastPageLogFile)
     ? parseInt(fs.readFileSync(lastPageLogFile, { encoding: "utf8" }), 10)
@@ -33,8 +35,8 @@ async function* getData(collectionName) {
 
     console.log("Loading page", pageUrl);
 
-    const pageResp = await backoffAxios({ method: "get", url: pageUrl });
-    const $ = cheerio.load(pageResp.data);
+    const html = await backoffGetHtml(pageUrl);
+    const $ = cheerio.load(html);
 
     const itemIds = $("#search-results .result-item .archive_name a")
       .map((_i, element) => {
