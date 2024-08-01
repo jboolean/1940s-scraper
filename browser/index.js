@@ -150,7 +150,7 @@ class ScrapeBrowser {
     const page = await this.browser.newPage();
     try {
       await this.injectCloudflareSolver(page);
-      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 0});
       await sleep(2000);
       const expire = Date.now() + 60000;
       while (Date.now() < expire) {
@@ -162,6 +162,9 @@ class ScrapeBrowser {
 
         if (hasCaptcha) {
           console.log("Captcha detected,waiting...");
+          await sleep(1000);
+        } else if (!html) {
+          console.log("No html yet, waiting...");
           await sleep(1000);
         } else {
           return html;

@@ -5,7 +5,7 @@ const downloadImage = require("../scrape2/downloadImageWithBrowser");
 const ScrapeBrowser = require("../browser");
 const { RateLimiter } = require("limiter");
 
-const limiter = new RateLimiter({ tokensPerInterval: 12, interval: "minute" });
+const limiter = new RateLimiter({ tokensPerInterval: 14, interval: "minute" });
 
 // These are the proservica names
 const COLLECTION_NAMES = {
@@ -25,6 +25,7 @@ const keyFn = (resp) => {
 
 (async () => {
   const borough = process.argv[2];
+  let counter = 0;
 
   // If a borough is specified, only scrape that borough. Otherwise, scrape all.
   const collections =
@@ -36,12 +37,18 @@ const keyFn = (resp) => {
   await browser.launch();
 
   for (const collectionName of collections) {
-    console.log("starting", borough);
+    console.log("starting", collectionName);
     for await (const record of getData(browser, collectionName)) {
       const { imageUrl } = record;
       await limiter.removeTokens(1);
       console.log(`Downloading image from ${imageUrl}`);
       await downloadImage(browser, imageUrl, keyFn);
+
+      // Restart the browser every 20,000 records
+      if (++counter % 20_000 === 0) {
+        await browser.close();
+        await browser.launch();
+      }
     }
   }
 
