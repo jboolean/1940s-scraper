@@ -1,10 +1,11 @@
 // This script is for rescraping only photos from Preservica. We don't need metadata again.
 
 const getData = require("./getData");
-const downloadImage = require("../scrape2/downloadImage");
-const eachLimit = require("async/eachLimit");
+const downloadImage = require("../scrape2/downloadImageWithBrowser");
+const ScrapeBrowser = require("../browser");
+const { RateLimiter } = require("limiter");
 
-const LIMIT = 10;
+const limiter = new RateLimiter({ tokensPerInterval: 14, interval: "minute" });
 
 // These are the proservica names
 const COLLECTION_NAMES = {
@@ -24,6 +25,7 @@ const keyFn = (resp) => {
 
 (async () => {
   const borough = process.argv[2];
+  let counter = 0;
 
   // If a borough is specified, only scrape that borough. Otherwise, scrape all.
   const collections =
@@ -31,13 +33,23 @@ const keyFn = (resp) => {
       ? [COLLECTION_NAMES[borough]]
       : Object.values(COLLECTION_NAMES);
 
+  const browser = new ScrapeBrowser();
+  await browser.launch();
+
   for (const collectionName of collections) {
-    console.log("starting", borough);
-    await eachLimit(getData(collectionName), LIMIT, async (record) => {
+    console.log("starting", collectionName);
+    for await (const record of getData(browser, collectionName)) {
       const { imageUrl } = record;
+      await limiter.removeTokens(1);
       console.log(`Downloading image from ${imageUrl}`);
-      await downloadImage(imageUrl, keyFn);
-    });
+      await downloadImage(browser, imageUrl, keyFn);
+
+      // Restart the browser every 20,000 records
+      if (++counter % 20_000 === 0) {
+        await browser.close();
+        await browser.launch();
+      }
+    }
   }
 
   console.log("Scrape complete.");
