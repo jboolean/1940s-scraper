@@ -47,10 +47,9 @@ const geocoders = {
       return Promise.resolve(null);
     }
 
-    return backoffGet('https://geosearch.planninglabs.nyc/v1/search/structured', {
+    return backoffGet('https://geosearch.planninglabs.nyc/v2/search', {
       params: {
-        address: simplifiedAddress,
-        borough: borough
+        text: simplifiedAddress,
       }
     })
       .then((resp) => resp, (err) => {
@@ -101,7 +100,7 @@ const geocoders = {
       params: {
         address: simplifiedAddress,
         components: `administrative_area:NY|locality:${borough}`,
-        key: '***REMOVED***'
+        key: process.env.GOOGLE_MAPS_API_KEY
       }
     })
       .then((resp) => {
@@ -176,7 +175,14 @@ const geocoders = {
     return point;
   },
   pluto: async (photo) => {
-    const { borough, block, lot } = photo;
+    const { identifier, borough, block, lot } = photo;
+
+    if (identifier.endsWith('_w5')) {
+      // These are images in Queens with "Q=" on the placard.
+      // I'm not sure what's up with these, but their locations don't correspond to the BBLs on the sign.
+      return null;
+    }
+
     if (isEmpty(borough) || !(borough in BORO_CODES) || isEmpty(block) || isEmpty(lot)) {
       console.warn('Cannot form bbl', borough, block, lot);
     }
